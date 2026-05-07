@@ -64,9 +64,18 @@ class ProfileEditor(QWidget):
         self.google_ip = QLineEdit()
         self.front_domain = QLineEdit()
         self.front_domains = QLineEdit()
-        self.script_id = QLineEdit()
+        # Deployment ID and auth_key are sensitive — use password fields with toggle
+        self.script_id_edit = QLineEdit()
+        self.script_id_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self.script_id_toggle = QPushButton("Show")
+        self.script_id_toggle.setCheckable(True)
+        self.script_id_toggle.clicked.connect(lambda: self._toggle_echo(self.script_id_edit, self.script_id_toggle))
+
         self.auth_key = QLineEdit()
         self.auth_key.setEchoMode(QLineEdit.EchoMode.Password)
+        self.auth_key_toggle = QPushButton("Show")
+        self.auth_key_toggle.setCheckable(True)
+        self.auth_key_toggle.clicked.connect(lambda: self._toggle_echo(self.auth_key, self.auth_key_toggle))
         self.listen_host = QLineEdit()
         self.http_port = QLineEdit()
         self.socks5_port = QLineEdit()
@@ -77,6 +86,7 @@ class ProfileEditor(QWidget):
         self.tcp_connect_timeout = QLineEdit()
         self.log_level = QComboBox()
         self.log_level.addItems(["DEBUG", "INFO", "WARNING", "ERROR"])
+        self.youtube_via_relay = QCheckBox("Route YouTube through relay")
 
         self.exit_enabled = QCheckBox("Enable exit node")
         self.exit_provider = QComboBox()
@@ -92,8 +102,21 @@ class ProfileEditor(QWidget):
         layout.addRow("Google IP", self.google_ip)
         layout.addRow("Front domain", self.front_domain)
         layout.addRow("Front domains (comma-separated)", self.front_domains)
-        layout.addRow("Apps Script deployment ID", self.script_id)
-        layout.addRow("Auth key", self.auth_key)
+        # compose widgets with toggle buttons
+        sid_box = QWidget()
+        sid_layout = QHBoxLayout(sid_box)
+        sid_layout.setContentsMargins(0, 0, 0, 0)
+        sid_layout.addWidget(self.script_id_edit)
+        sid_layout.addWidget(self.script_id_toggle)
+
+        auth_box = QWidget()
+        auth_layout = QHBoxLayout(auth_box)
+        auth_layout.setContentsMargins(0, 0, 0, 0)
+        auth_layout.addWidget(self.auth_key)
+        auth_layout.addWidget(self.auth_key_toggle)
+
+        layout.addRow("Apps Script deployment ID", sid_box)
+        layout.addRow("Auth key", auth_box)
         layout.addRow("Listen host", self.listen_host)
         layout.addRow("HTTP port", self.http_port)
         layout.addRow("SOCKS5 port", self.socks5_port)
@@ -103,6 +126,7 @@ class ProfileEditor(QWidget):
         layout.addRow("TLS connect timeout", self.tls_connect_timeout)
         layout.addRow("TCP connect timeout", self.tcp_connect_timeout)
         layout.addRow("Log level", self.log_level)
+        layout.addRow(self.youtube_via_relay)
 
         exit_box = QGroupBox("Exit node")
         exit_layout = QFormLayout(exit_box)
@@ -114,6 +138,14 @@ class ProfileEditor(QWidget):
         exit_layout.addRow("Hosts (comma-separated)", self.exit_hosts)
         layout.addRow(exit_box)
 
+    def _toggle_echo(self, line_edit: QLineEdit, button: QPushButton) -> None:
+        if button.isChecked():
+            line_edit.setEchoMode(QLineEdit.EchoMode.Normal)
+            button.setText("Hide")
+        else:
+            line_edit.setEchoMode(QLineEdit.EchoMode.Password)
+            button.setText("Show")
+
     def set_config(self, config: dict) -> None:
         self._base_config = _copy_base_config(config)
         cfg = self._base_config
@@ -122,7 +154,7 @@ class ProfileEditor(QWidget):
         self.google_ip.setText(str(cfg.get("google_ip", "")))
         self.front_domain.setText(str(cfg.get("front_domain", "")))
         self.front_domains.setText(_as_csv(cfg.get("front_domains", [])))
-        self.script_id.setText(str(cfg.get("script_id", "")))
+        self.script_id_edit.setText(str(cfg.get("script_id", "")))
         self.auth_key.setText(str(cfg.get("auth_key", "")))
         self.listen_host.setText(str(cfg.get("listen_host", "127.0.0.1")))
         self.http_port.setText(str(cfg.get("http_port", 8085)))
@@ -140,13 +172,14 @@ class ProfileEditor(QWidget):
         self.exit_psk.setText(str(exit_node.get("psk", "")))
         self.exit_mode.setCurrentText(str(exit_node.get("mode", "full")))
         self.exit_hosts.setText(_as_csv(exit_node.get("hosts", [])))
+        self.youtube_via_relay.setChecked(bool(cfg.get("youtube_via_relay", False)))
 
     def get_config(self) -> dict:
         cfg = copy.deepcopy(self._base_config)
         cfg["google_ip"] = self.google_ip.text().strip() or cfg.get("google_ip", "216.239.38.120")
         cfg["front_domain"] = self.front_domain.text().strip() or cfg.get("front_domain", "www.google.com")
         cfg["front_domains"] = _split_csv(self.front_domains.text())
-        script_id = self.script_id.text().strip()
+        script_id = self.script_id_edit.text().strip()
         if script_id:
             cfg["script_id"] = script_id
             cfg.pop("script_ids", None)
@@ -160,6 +193,7 @@ class ProfileEditor(QWidget):
         cfg["tls_connect_timeout"] = self._as_int(self.tls_connect_timeout.text(), 15)
         cfg["tcp_connect_timeout"] = self._as_int(self.tcp_connect_timeout.text(), 10)
         cfg["log_level"] = self.log_level.currentText()
+        cfg["youtube_via_relay"] = bool(self.youtube_via_relay.isChecked())
 
         exit_node = copy.deepcopy(cfg.get("exit_node") or {})
         exit_node["enabled"] = self.exit_enabled.isChecked()
@@ -394,7 +428,7 @@ class MainWindow(QMainWindow):
     def connect_proxy(self) -> None:
         try:
             config = self.current_config()
-            self.store.write_runtime_config(config)
+            self.store.save_runtime_config(config)
             self.proxy.start(self.store.runtime_config_file)
             self.status_label.setText("Starting proxy...")
             self.append_log(f"Starting proxy with {self.store.runtime_config_file}")
