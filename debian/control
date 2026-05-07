@@ -1,0 +1,17 @@
+Source: masterhttprelayvpn
+Section: net
+Priority: optional
+Maintainer: MasterHttpRelayVPN Maintainers <noreply@example.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+Homepage: https://github.com/masterking32/MasterHttpRelayVPN
+
+Package: masterhttprelayvpn
+Architecture: all
+Depends: ${misc:Depends}, python3, python3-pyqt6, python3-cryptography, python3-h2, python3-certifi, python3-brotli, python3-zstandard, ca-certificates, gsettings-desktop-schemas
+Recommends: dconf-cli
+Description: Local proxy relay controller with tray GUI
+ A Python proxy relay for Apps Script fronting, plus a PyQt tray GUI for
+ starting and stopping the proxy, switching profiles, and toggling the
+ system proxy on supported Debian desktops.

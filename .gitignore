@@ -43,3 +43,6 @@ scripts/
 
 # AI planning docs
 ai_docs/
+
+# Debian build output
+debian/masterhttprelayvpn/

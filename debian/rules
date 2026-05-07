@@ -1,0 +1,14 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_install:
+	rm -rf debian/masterhttprelayvpn
+	install -d debian/masterhttprelayvpn/usr/share/masterhttprelayvpn
+	install -d debian/masterhttprelayvpn/usr/bin
+	install -d debian/masterhttprelayvpn/usr/share/applications
+	cp -a main.py gui.py requirements.txt setup.py config.example.json README.md README_FA.md src apps_script docs debian/masterhttprelayvpn/usr/share/masterhttprelayvpn/
+	install -m 755 debian/scripts/masterhttprelayvpn debian/masterhttprelayvpn/usr/bin/masterhttprelayvpn
+	install -m 755 debian/scripts/masterhttprelayvpn-gui debian/masterhttprelayvpn/usr/bin/masterhttprelayvpn-gui
+	install -m 644 debian/scripts/masterhttprelayvpn.desktop debian/masterhttprelayvpn/usr/share/applications/masterhttprelayvpn.desktop
