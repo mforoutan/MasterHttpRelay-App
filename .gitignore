@@ -40,3 +40,6 @@ domainfront_certs_*/
 
 # Local scripts (excluded from git pushes)
 scripts/
+
+# AI planning docs
+ai_docs/
